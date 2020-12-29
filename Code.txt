@@ -1,0 +1,844 @@
+//SERVICE: React | DEPENDENCIES: None | VERSION: 1.1
+var React=function(){function e(){var s=this;this.Listeners=[];this.Listen=function(e){var t={};s.Listeners.push(t);t.Reaction=e;this.Disconnect=function(){var e=[];for(var n=0;n<s.Listeners.length;n++){if(s.Listeners[n]!=t){e.push(t)}}s.Listeners=e};return t}}e.prototype.Trigger=function(){for(var e=0;e<this.Listeners.length;e++){this.Listeners[e].Reaction.apply(undefined,arguments)}};return{Event:e,Pressed:new e,Released:new e,Before:new e,After:new e}}();
+function mousePressed(){React.Pressed.Trigger()}function mouseReleased(){React.Released.Trigger()}
+//SERVICE: UI5 | DEPENDENCIES: React | VERSION: 1.3
+var UI5=function(e){var i,t,r,n,a,f,s;var v=function(n){n=n||createSprite();n.FixScaling=function(e,r){n.scale=e/(r==="width"?n.width:r==="height"?n.height:50)};n.Draw=function(){if(n.visible){drawSprite(n);n.Drawn.Trigger(n)}};n.Released=new e.Event;n.Pressed=new e.Event;n.Clicked=new e.Event;n.Update=new e.Event;n.Drawn=new e.Event;n.Type="Button";n.Held=false;n.Active=true;n.ZIndex=1;n.Delete=function(){var e=[];for(var r=0;r<i.length;r++){if(i[r]!=n){e.push(n)}}i.length=0;for(var t=0;t<e.length;t++){i.push(e[t])}n.destroy()};i.push(n);return n};i=[];r=v;t=function(){i.sort(function(e,r){return r.ZIndex-e.ZIndex});var e=[];for(var r=0;r<i.length;r++){var t=i[r];if(t.Active&&mouseIsOver(t)){e.push(t)}}return e[e.length-1]};s=function(){var e=t();for(var r=0;r<i.length;r++){if(i[r].Active){i[r].Update.Trigger(i[r],e===i[r])}}};n=function(){for(var e=0;e<i.length;e++){i[e].Draw()}};f=function(){var e=t();if(e){e.Pressed.Trigger(e);e.Held=true}};a=function(){var e=t();if(e&&e.Held){e.Clicked.Trigger(e)}for(var r=0;r<i.length;r++){if(i[r].Held){i[r].Held=false;i[r].Released.Trigger(i[r])}}};e.Pressed.Listen(f);e.Released.Listen(a);e.After.Listen(n);e.Before.Listen(s);return{CreateButton:r,Objects:i}}(React);
+var AllTowers = {
+  Sunflower: {
+    Cost:50,
+    Recharge:50,
+    Health:100,
+    Sprite:"sunflower",
+    ActionTime:200,
+    Countdown:10,
+    Description: "Sunflower (50)",
+    Action:function(t) {
+      var s = createSprite();
+      s.setAnimation("sun");
+      s.scale=0.2;
+      s.x = t.Sprite.x+randomNumber(-5, 5);
+      s.velocityX = randomNumber(-5, 5)/2;
+      s.y = t.Sprite.y+randomNumber(-5, 5);
+      s.velocityY = randomNumber(-5, 5)/2;
+      s.Decay=7000;
+      s.Type = "credit";
+      Collectibles.push(s);
+    }
+  },
+  Cherrybomb: {
+    Cost:150,
+    Recharge:100,
+    Health:10000,
+    Sprite:"cherrybomb",
+    ActionTime:0,
+    Countdown:7, //this thing doesn't do anything until it is touched
+    Description: "Cherry Bomb (150)",
+    Action:function(t) {
+      for (var i=0; i<Enemies.length;i++) {
+        var lane = Enemies[i];
+        for (var l=0; l<lane.length;l++) {
+          var e = lane[l];
+          if (sqrt(sq(e.x-t.Sprite.x)+sq(e.y-t.Sprite.y))<80000) {
+            e.Health=0;
+            if (e.Health<=0) {
+              e.Delete();
+            }
+          }
+        } 
+      }
+      t.Health = 0;
+      t.DeleteTower();
+      playSound("sound://category_explosion/radioactive_zombie_explode_2.mp3");
+      
+    }
+  },
+  Peashooter1: {
+    Cost:100,
+    Recharge:20,
+    Health:100,
+    Sprite:"peashooter",
+    ActionTime:32,
+    Countdown:10,
+    Description: "Peashooter (100)",
+    Action:function(t) {
+      if (Enemies[t.Lane].length>0) {
+        var s = createSprite();
+        s.Type = "normal";
+        s.setAnimation("pea2");
+        s.scale=20/s.height;
+        s.Damage = 400;
+        s.x = t.Sprite.x+20;
+        s.y = t.Sprite.y;
+        s.Lane = t.Lane;
+        s.velocityX = 5;
+        Projectiles.push(s);
+        playSound("sound://category_hits/8bit_splat.mp3");
+      } else {
+        t.Countdown = randomNumber(0, 10);
+      }
+    }
+  },
+    Peashooter2: {
+    Cost:175,
+    Recharge:100,
+    Health:100,
+    Sprite:"snowpea",
+    ActionTime:32,
+    Countdown:20,
+    Description: "Snow Pea (175)",
+    Action:function(t) {
+      if (Enemies[t.Lane].length>0) {
+        var s = createSprite();
+        s.Type = "normal";
+        s.setAnimation("pea");
+        s.scale=20/s.height;
+        s.Damage = 600;
+        s.x = t.Sprite.x+20;
+        s.y = t.Sprite.y;
+        s.Lane = t.Lane;
+        s.velocityX = 5;
+        Projectiles.push(s);
+        playSound("sound://category_hits/8bit_splat.mp3");
+      } else {
+        t.Countdown = randomNumber(0, 10);
+      }
+    }
+  },
+  Peashooter3: {
+    Cost:200,
+    Recharge:100,
+    Health:100,
+    Sprite:"repeater",
+    ActionTime:16,
+    Countdown:80,
+    Description: "Repeater (200)",
+    Action:function(t) {
+      if (Enemies[t.Lane].length>0) {
+        var shoot = function() {
+          var s = createSprite();
+          s.Type = "normal";
+          s.setAnimation("pea2");
+          s.scale=20/s.height;
+          s.Damage = 400;
+          s.x = t.Sprite.x+20;
+          s.y = t.Sprite.y;
+          s.Lane = t.Lane;
+          s.velocityX = 5;
+          Projectiles.push(s);
+          playSound("sound://category_hits/8bit_splat.mp3");
+        };
+        shoot();
+        setTimeout(shoot, 200);        
+      } else {
+        t.Countdown = randomNumber(0, 10);
+      }
+    }
+  },
+  Peashooter4: {
+    Cost:250,
+    Recharge:400,
+    Health:100,
+    Sprite:"gatling pea",
+    ActionTime:8,
+    Countdown:100,
+    Description: "Gatling Pea (250)",
+    Action:function(t) {
+      if (Enemies[t.Lane].length>0) {
+        var s = createSprite();
+        s.Type = "normal";
+        s.setAnimation("pea2");
+        s.scale=20/s.height;
+        s.Damage = 200;
+        s.x = t.Sprite.x+20;
+        s.y = t.Sprite.y;
+        s.Lane = t.Lane;
+        s.velocityX = 5;
+        Projectiles.push(s);
+        playSound("sound://category_hits/8bit_splat.mp3");
+      } else {
+        t.Countdown = randomNumber(0, 10);
+      }
+    }
+  },
+  Peashooter5: {
+    Cost:325,
+    Recharge:200,
+    Health:100,
+    Sprite:"threepeater",
+    ActionTime:8,
+    Countdown:40,
+    Description: "Three Peater (325)",
+    Action:function(t) {
+      if (enemyExists()) {
+        var s = createSprite();
+        s.Type = "follow";
+        s.setAnimation("pea2");
+        s.scale=20/s.height;
+        s.Damage = 250;
+        s.Speed = 15;
+        s.x = t.Sprite.x+20;
+        s.y = t.Sprite.y;
+        s.Target = getClosestEnemy(t.Sprite.x, t.Sprite.y);
+        Projectiles.push(s);
+        playSound("sound://category_hits/8bit_splat.mp3");
+      } else {
+        t.Countdown = randomNumber(0, 10);
+      }
+    }
+  },
+  Wallnut: {
+    Cost:50,
+    Recharge:100,
+    Health:1000,
+    Sprite:"wall nut",
+    ActionTime:0,
+    Countdown:40,
+    Description: "Wall-Nut (50)",
+    Action:function(t) {
+      if (t.Health<100) {
+        t.Sprite.setAnimation("wall_damaged_2");
+      } else if (t.Health<500) {
+        t.Sprite.setAnimation("wall_damaged");
+      }
+    }
+  },
+  Shovel: {
+    Recharge:10,
+    Shovel:1,
+    Sprite:"shovel",
+    Description: "Shovel",
+  }
+};
+var Types = {
+  normal: {
+    Still: "z1s",
+    Walk: "z1w",
+    Health: 2000,
+    Speed: 1,
+  },
+  cone: {
+    Still: "z2s",
+    Walk: "z2w",
+    Health: 4000,
+    Speed: 1,
+  },
+  bucket: {
+    Still: "z3s",
+    Walk: "z3w",
+    Health: 6000,
+    Speed: 1,
+  }
+  ,
+  Super: {
+    Still: "z4s",
+    Walk: "z4w",
+    Health: 8000,
+    Speed: 1,
+  },
+  normal_boss: {
+    Size: 1.2,
+    Still: "z1s",
+    Walk: "z1w",
+    Health: 10000,
+    Speed: 0.7,
+  },
+  cone_boss: {
+    Size: 1.4,
+    Still: "z2s",
+    Walk: "z2w",
+    Health: 12000,
+    Speed: 0.7,
+  },
+  bucket_boss: {
+    Size: 1.6,
+    Still: "z3s",
+    Walk: "z3w",
+    Health: 14000,
+    Speed: 0.7,
+  },
+  small: {
+    Size: 0.8,
+    Still: "z5s",
+    Walk: "z5w",
+    Health: 400,
+    Speed: 2,
+  },
+  super_boss: {
+    Size: 2,
+    Still: 'z4s',
+    Walk: 'z4w',
+    Health: 20000,
+    Speed: 0.5
+  },
+};
+
+var Levels = {
+  Level1:[
+    ["wait", 1000], 
+    ["normal", 600],
+    ["normal", 400],
+    ["normal", 700],
+    ["cone", 300],
+    ["cone", 700],
+    ["bucket", 25],
+    ["bucket", 600],
+    ["cone", 25],
+    ["Super", 900],
+    ["Super", 25],
+    ["Super", 25],
+    ["cone", 25],
+    ["bucket", 25],
+    ["small", 900],
+    ["normal", 50],
+    ["small", 50],
+    ["normal_boss", 400],
+    ["Super", 200],
+    ['wait', 100],
+    ['cone',100],
+    ['Super', 300],
+    ['Super', 600],
+    ['normal_boss', 700],
+    ['wait', 400],
+    ['bucket_boss', 400],
+    ['bucket_boss', 500],
+    ['normal', 1000],
+    ['bucket', 789],
+    ['normal_boss', 400],
+    ['bucket_boss', 500],
+    ['wait', 400],
+    ['cone', 500],
+    ['small', 2000],
+    ['cone', 678],
+    ['bucket_boss', 890],
+    ['normal_boss', 890],
+    ['bucket_boss', 900],
+    ['Super', 890],
+    ['wait', 500],
+    ['normal_boss', 300],
+    ['normal_boss', 400],
+    ['bucket_boss', 500],
+    ['super_boss', 400],
+    ['wait', 200],
+    ['Super', 500],
+    ['normal_boss', 400],
+    ['normal_boss', 500],
+    ['bucket_boss', 500],
+    ['super_boss', 700],
+    ['wait', 500],
+    ['bucket_boss', 500],
+    ['bucket_boss', 600],
+    ['super_boss', 700],
+    ['super', 800],
+    ['bucket', 800],
+    ['wait', 400],
+    ['Super', 800],
+    ['Super', 500],
+    ['bucket', 800],
+    ['cone', 25],
+    ['bucket', 700],
+    ['super_boss', 800],
+    ],
+    
+};
+
+var TimeUntilNextCredit = 15;
+var EnemyInstructions = unpackageLevel(Levels.Level1);
+var Time = 0;
+var CreditDisplaySprite = createSprite();CreditDisplaySprite.setAnimation("sun");CreditDisplaySprite.scale=0.4;CreditDisplaySprite.x=30;CreditDisplaySprite.y=370;
+var Credits = 50;
+var CreditsAnim = 50;
+var Collectibles = [];
+var Projectiles = [];
+var Enemies = [[],[],[],[],[]];
+var bkg = createSprite();bkg.setAnimation("background");bkg.x=200;bkg.y=200;
+var AvailableTowers = ["Sunflower", "Peashooter1", 'Peashooter2', 'Peashooter3', 'Peashooter4', 'Wallnut', 'Cherrybomb', 'Shovel' ];
+var HoverText = "";
+var HoverX=0;
+var IsHoldingTower = false;
+var TowersOnLawn = [];
+var TowersOnLawnGroup = createGroup();
+
+var lawn = createSprite();
+var screen = "game";
+lawn.setAnimation("lawn");
+lawn.x=200;
+lawn.y=200;
+lawn.scale=400/lawn.width;
+lawn.Rows = 5;
+lawn.Collumns = 8;
+lawn.GetTile = function(x, y) {
+  var mx = x-lawn.x+lawn.width/2;
+  var my = y-lawn.y+lawn.height/2;
+  mx = (floor((mx*lawn.Collumns)/lawn.width));
+  my = (floor((my*lawn.Rows)/lawn.height));
+  if (mx>=0&&mx<lawn.Collumns&&my>=0&&my<lawn.Rows) {
+    x = mx*lawn.width/lawn.Collumns+lawn.x-lawn.width/2;
+    y = my*lawn.height/lawn.Rows+lawn.y-lawn.height/2;
+    var width = lawn.width/lawn.Collumns;
+    var height = lawn.height/lawn.Rows;
+    return [mx, my, x+width/2, y+height/2];
+  }
+};
+
+lawn.SelectTile = function(x, y) {
+  noStroke();
+  fill(rgb(0, 0, 0, 0.2));
+  rect(x-lawn.width/lawn.Collumns/2, y-lawn.height/lawn.Rows/2, lawn.width/lawn.Collumns, lawn.height/lawn.Rows);
+};
+
+var lawndata = {};
+var boundingbox = createSprite();boundingbox.setAnimation("selectionbox");boundingbox.scale=42/boundingbox.width;boundingbox.pause();
+
+var RespawnButton = UI5.CreateButton();
+RespawnButton.Active=false;
+RespawnButton.visible=false;
+RespawnButton.x = 200;
+RespawnButton.y = 300;
+RespawnButton.Clicked.Listen(function() {
+  resetGame();
+  screen = "game";
+  RespawnButton.visible=false;
+  RespawnButton.Active=false;
+});
+RespawnButton.Update.Listen(function(self, over){
+  if (over) {
+    self.scale = min(self.scale+0.2, 1.5);
+  } else {
+    self.scale = max(self.scale-0.2, 1);
+  }
+});
+
+var SelectionButtons = createSelectionButtons();
+registerSelectionButtons(SelectionButtons, AvailableTowers);
+
+React.Released.Listen(function(){
+  if (IsHoldingTower) {
+    var pos = lawn.GetTile(IsHoldingTower.x, IsHoldingTower.y);
+    if (pos) {
+      if (IsHoldingTower.CorrespondingTower.Shovel&&lawndata[pos[0]]&&lawndata[pos[0]][pos[1]]) {
+        lawndata[pos[0]][pos[1]].DeleteTower();
+      } else {
+        if (!lawndata[pos[0]]) {
+          lawndata[pos[0]]={};
+        }
+        
+        if (!lawndata[pos[0]][pos[1]] && Credits>=IsHoldingTower.CorrespondingTower.Cost) {
+          var tow = Object.create(IsHoldingTower.CorrespondingTower);
+          Credits-=tow.Cost;
+          IsHoldingTower.Recharge = tow.Recharge;
+          var sprite = createSprite(pos[2],pos[3]);
+          sprite.setAnimation(tow.Sprite);
+          sprite.scale = 50/sprite.height;
+          sprite.TileX = pos[0];
+          sprite.TileY = pos[1];
+          tow.Sprite = sprite;
+          tow.Lane = pos[1];
+          tow.Health = IsHoldingTower.CorrespondingTower.Health;
+          tow.DeleteTower = function() {
+            tow.Sprite.destroy();
+            var nl = [];
+            for (var ti = 0; ti<TowersOnLawn.length; ti++) {
+              if (TowersOnLawn[ti]!=tow) {
+                nl.push(TowersOnLawn[ti]);
+              }
+            }
+            TowersOnLawn=nl;
+            delete lawndata[pos[0]][pos[1]];
+          };
+          lawndata[pos[0]][pos[1]]=tow;
+          TowersOnLawn.push(tow);
+          TowersOnLawnGroup.add(sprite);
+        }
+      }
+    }
+  }
+});
+
+function draw() {
+  if (keyDown("Q")&&keyDown("W")&&keyDown("E")) {
+    Credits=promptNum("Set credits to....");
+  }
+  if (screen==="game") {
+    drawSprite(bkg);
+    textAlign(RIGHT, CENTER);
+    fill("blue");
+    stroke("blue");
+    textSize(20);
+    text("Plants vs Zombies \n by Atreya Nandy", 380, 360);    
+    IsHoldingTower = false;
+    HoverText = "";
+    React.Before.Trigger();
+    drawSprite(lawn);
+    
+    if (IsHoldingTower) {
+      var pos = lawn.GetTile(IsHoldingTower.x, IsHoldingTower.y);
+      if (pos) {
+        lawn.SelectTile(pos[2], pos[3]);
+      }
+    }
+    if (EnemyInstructions[Time]) {
+      createEnemy(Types[EnemyInstructions[Time]], randomNumber(0, lawn.Rows-1));
+    }
+    for (var i = 0; i<TowersOnLawn.length; i++) {
+      var t = TowersOnLawn[i];
+      t.Countdown--;
+      if (t.Countdown<=0) {
+        t.Countdown = t.ActionTime;
+        t.Action(t);
+      }
+      drawSprite(t.Sprite);
+    }
+    for (var i = 0; i<Enemies.length; i++) {
+      var l = Enemies[i];
+      var previa;
+      for (var li = 0; li<l.length;li++) {
+        var t = l[li];
+        if (t.isTouching(TowersOnLawnGroup) && !t.isAttacking) {
+          for (var tg = 0; tg<TowersOnLawnGroup.length; tg++) {
+            var tow = TowersOnLawnGroup[tg];
+            if ((tow.TileY==i) && tow.isTouching(t)) { //check same lane
+              t.isAttacking = lawndata[tow.TileX][tow.TileY];
+              
+              t.atx = tow.TileX;
+              break;
+            }
+          }
+        }
+        if  (t.isAttacking) {
+          t.setAnimation(t.Still);
+          t.isAttacking.Health--;
+          if (t.isAttacking.Health<=0 && lawndata[t.atx][i]) {
+            t.isAttacking.DeleteTower();
+          }
+          if (t.isAttacking.Health<=0) {
+            delete t.isAttacking;
+          }
+        } else {
+          t.x-=t.Speed;
+          t.setAnimation(t.Walk);
+        }
+        if (t.x+t.width/2<0) {
+          screen = "lose";
+          hideButtons(SelectionButtons);
+          RespawnButton.Active=true;
+          RespawnButton.visible = true;
+          
+        }
+        drawSprite(t);
+      }
+    }
+    var nl = [];
+    var notsafe = false;
+    for (var p = 0; p<Projectiles.length; p++) {
+      var po= Projectiles[p];
+      var hit = undefined; // 'not necessary' but it turns it out IS necessary cause code.org is broken
+      if (po.Type==="normal") {
+        for (var j = 0; j<Enemies[po.Lane].length; j++) {
+          var en = Enemies[po.Lane][j];
+          if (po.isTouching(en)) {
+            hit = en;
+            break;
+          }
+        }
+        
+        if (hit) {
+          playSound("sound://category_hits/retro_game_hit_block_4.mp3");
+          hit.Health-=po.Damage;
+          if (hit.Health<=0) {
+            hit.Delete();
+          }
+        }
+        
+        if (hit || po.x>400) {
+          po.destroy();
+        } else {
+          nl.push(po);
+        }
+      } else if (po.Type==="follow") {
+        var target = po.Target;
+        if (target.Health>0) {
+          po.setSpeedAndDirection(po.Speed, atan2(target.y-po.y, target.x-po.x));
+          if (po.isTouching(target)) {
+            hit = target;
+          }
+          
+          if (hit) {
+            playSound("sound://category_hits/retro_game_hit_block_4.mp3");
+            hit.Health-=po.Damage;
+            if (hit.Health<=0) {
+              hit.Delete();
+            }
+          }
+          
+          if (hit || po.x>400) {
+            po.destroy();
+          } else {
+            nl.push(po);
+          }
+        } else if (enemyExists()) {
+          po.Target = getClosestEnemy(po.x, po.y);
+          nl.push(po);
+        } else {
+          po.destroy();
+        }
+      }
+      drawSprite(po);
+    }
+    Projectiles = nl;
+    nl = [];
+    TimeUntilNextCredit--;
+    if (TimeUntilNextCredit<=0) {
+      spawnCredit();
+      TimeUntilNextCredit = randomNumber(300, 400);
+    }
+    for (var c = 0; c<Collectibles.length; c++) {
+      var co= Collectibles[c];
+      co.Decay--;
+      if (co.Type=="credit") {
+        //start flashing to indicate that the sun is decaying
+        if (co.Decay<=100) {
+          co.setAnimation(floor(co.Decay/10)%2==1?"sun_decay":"sun");
+        }
+        if (co.Decay>0) {
+          if (co.Collected || mouseIsOver(co)) {
+            co.Collected=true;
+            co.x-=co.x/8;
+            co.y-=(-400+co.y)/8;
+            co.velocityX=0;
+            co.velocityY=0;
+            if (co.isTouching(CreditDisplaySprite)) {
+              co.destroy();
+              Credits+=25;
+            } else {
+              nl.push(co);
+            }
+          } else {
+            co.velocityX*=0.9;
+            co.velocityY*=0.9;
+            nl.push(co);
+          }
+        }
+      }
+        drawSprite(co);
+    }
+    Collectibles = nl;
+    
+    if (HoverText) {
+      textSize(16);
+      fill("purple");
+      var normal = HoverX-textWidth(HoverText)/2-5;
+      var fin = min(max(5, normal), 400-textWidth(HoverText)-15);
+      rect(fin, 50, textWidth(HoverText)+10, 20);
+      fill("cyan");
+      textAlign(CENTER, CENTER);
+      text(HoverText, HoverX+fin-normal, 62);
+    }
+    React.After.Trigger();
+    drawSprite(CreditDisplaySprite);
+    textAlign(LEFT, CENTER);
+    fill("yellow");
+    textSize(40);
+    CreditsAnim+=((Credits-CreditsAnim)/5);
+    text(round(CreditsAnim), 70, 370);
+    Time++;
+    if (Time>Object.keys(EnemyInstructions)[Object.keys(EnemyInstructions).length-1]&&!enemyExists()) {
+      screen = "end";
+      hideButtons(SelectionButtons);
+      RespawnButton.Active=true;
+      RespawnButton.visible = true;
+    }
+  } else if (screen === "end") {
+    React.Before.Trigger();
+    background(rgb(255, 255, 255, 0.2));
+    textSize(20);
+    fill("purple");
+    text("The Zombies Ran Away", 50, 50);
+    React.After.Trigger();
+  } else if (screen === "lose") {
+    React.Before.Trigger();
+    background("green");
+    textSize(20);
+    stroke("red");
+    fill("red");
+    text("THE ZOMBIES ATE YOUR BRAINS",40, 200);
+    
+  }
+}
+
+function hideButtons(btns) {
+  for (var i = 0; i<btns.length; i++) {
+    btns[i].Active=false;
+    btns[i].visible=false;
+  }
+}
+
+function resetGame() {
+  lawndata = {};
+  TowersOnLawn = [];
+  registerSelectionButtons(SelectionButtons, AvailableTowers);
+  Credits=50;
+  Time=0;
+  Collectibles=[];
+  Projectiles=[];
+  Enemies = [[],[],[],[],[]];
+  IsHoldingTower = false;
+  CreditsAnim = 50;
+  TimeUntilNextCredit=15;
+  HoverText = "";
+  HoverX = 0;
+  
+}
+
+function enemyExists() {
+  for (var i = 0; i<Enemies.length; i++) {
+    var lane = Enemies[i];
+    if (lane.length>0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function unpackageLevel(l) {
+  var t = 0;
+  var e = {};
+  for (var i = 0; i<l.length; i++) {
+    if (l[i][0]=="wait") {
+      t+=l[i][1];
+    } else {
+      e[t] = l[i][0];
+      t+=l[i][1];
+    }
+  }
+  return e;
+}
+
+function spawnCredit() {
+  var s = createSprite();
+  s.setAnimation("sun");
+  s.scale=0.2;
+  s.x = randomNumber(40, 360);
+  s.velocityY = randomNumber(15, 35);
+  s.Decay=700;
+  s.Type = "credit";
+  Collectibles.push(s);
+}
+
+function registerSelectionButtons(btns, towers) {
+  for (var i = 0; i<btns.length; i++) {
+    var btn = btns[i];
+    if (towers[i]) {
+      var prop = AllTowers[towers[i]];
+      btn.setAnimation(prop.Sprite);
+      btn.pause();
+      btn.FixScaling(40, "height");
+      btn.visible = true;
+      btn.Active = true;
+      btn.Recharge = prop.Recharge;
+      btn.CorrespondingTower = prop;
+      btn.x = btn.PosX;
+      btn.y = btn.PosY;
+    } else {
+      btn.visible = false;
+      btn.Active = false;
+    }
+  }  
+}
+
+function createSelectionButtons() {
+  var btns = [];
+  for (var i = 0; i<8; i++) {
+    var btn = UI5.CreateButton();
+    btns.push(btn);
+    btn.Index = i;
+    btn.PosX = i*45+55;
+    btn.PosY = 30;
+    btn.Update.Listen(function(self, over){
+      boundingbox.x = self.PosX;
+      boundingbox.y = self.PosY;
+      if (self.Held && self.Recharge>0) {
+        self.Held = false;
+      }
+      if (over || self.Held) {
+        if (self.Held) {
+          boundingbox.setFrame(1);
+        } else {
+          boundingbox.setFrame(0);
+        }
+        HoverText = self.CorrespondingTower.Description;
+        HoverX = boundingbox.x;
+      } else {
+        boundingbox.setFrame(0);
+      }
+      if (self.Held) {
+        IsHoldingTower = self;
+        self.x = World.mouseX+self.shiftX;
+        self.y = World.mouseY+self.shiftY;
+        self.ZIndex=0;
+      } else {
+        self.x += (boundingbox.x-self.x)/4;
+        self.y += (boundingbox.y-self.y)/4;
+        self.ZIndex=1;
+      }
+      self.Recharge--;
+      //text(self.ZIndex, boundingbox.x, 60);
+      drawSprite(boundingbox);      
+    });
+    btn.Drawn.Listen(function(self){
+      noStroke();
+      fill(rgb(0, 0, 0, 0.5));
+      var ratio = ceil(self.Recharge/self.CorrespondingTower.Recharge*10)/10;
+      if (ratio>0) {
+        rect(self.PosX-20, self.PosY+20-ratio*40, 40, ratio*40);
+      }
+    });
+    btn.Pressed.Listen(function(self) {
+      self.shiftX = self.x-World.mouseX;
+      self.shiftY = self.y-World.mouseY;
+    });
+    btn.y=btn.PosY;
+    btn.x=btn.PosX;
+  }
+  return btns;
+}
+function getClosestEnemy(x, y) {
+  var closest;var dist;
+  for (var i = 0; i<Enemies.length; i++) {
+    var lane = Enemies[i];
+    for (var l = 0; l<lane.length; l++) {
+      var e = lane[l];
+      var edist = sqrt(sq(x-e.x)+sq(y-e.y));
+      if (!closest || (edist<dist)) {
+        closest = e;
+        dist = edist;
+      }
+    }
+  }
+  return closest;
+}
+function createEnemy(type, lane) {
+  console.log(lane);
+  var e = createSprite();
+  e.x = 410;
+  //var width = lawn.width/lawn.Collumns;
+  var height = lawn.height/lawn.Rows;  
+  //var x = mx*width+lawn.x-lawn.width/2+width/2;
+  e.scale = 0.7*(type.Size||1);
+  var y = lane*lawn.height/lawn.Rows+lawn.y-lawn.height/2+height-e.height*e.scale/2;
+  e.y = y;
+  e.Walk = type.Walk;
+  e.Still = type.Still;
+  e.Health = type.Health;
+  e.Speed = type.Speed;
+  e.Delete = function() {
+    var nl = [];
+    for (var i = 0; i<Enemies[lane].length; i++) {
+      if (Enemies[lane][i]!=e) {
+        nl.push(Enemies[lane][i]);
+      }
+    }
+    Enemies[lane] = nl;
+    e.destroy();
+  };
+  Enemies[lane].push(e);
+}
